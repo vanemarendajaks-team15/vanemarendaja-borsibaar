@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
+import { Input } from "@/components/ui/input";
 
 export const dynamic = "force-dynamic"; // still opt-out of caching
 
@@ -38,6 +38,14 @@ export default function Dashboard() {
   const [salesStats, setSalesStats] = useState<UserSalesStats[]>([]);
   const [stationStats, setStationStats] = useState<StationSalesStats[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [orgDetails, setOrgDetails] = useState<{
+    name: string;
+    priceIncreaseStep?: number;
+    priceDecreaseStep?: number;
+  } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -67,6 +75,15 @@ export default function Dashboard() {
           if (orgRes.ok) {
             const org = await orgRes.json();
             setOrgName(org?.name || "Unknown Organization");
+            setOrgDetails({
+              name: org?.name || "Unknown Organization",
+              priceIncreaseStep: org?.priceIncreaseStep
+                ? parseFloat(org.priceIncreaseStep)
+                : undefined,
+              priceDecreaseStep: org?.priceDecreaseStep
+                ? parseFloat(org.priceDecreaseStep)
+                : undefined,
+            });
           } else setOrgName("Unknown Organization");
         } catch {
           setOrgName("Unknown Organization");
@@ -118,6 +135,50 @@ export default function Dashboard() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  async function handleOrgUpdate(
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> {
+    e.preventDefault();
+    if (!me?.organizationId || !orgDetails) return;
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(null);
+    try {
+      const res = await fetch(
+        `/api/backend/organizations/${me.organizationId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: orgDetails.name,
+            priceIncreaseStep: orgDetails.priceIncreaseStep,
+            priceDecreaseStep: orgDetails.priceDecreaseStep,
+          }),
+        }
+      );
+      if (!res.ok) throw new Error(`Update failed: ${res.status}`);
+      const updated = await res.json();
+      setOrgDetails({
+        name: updated.name,
+        priceIncreaseStep: updated.priceIncreaseStep
+          ? parseFloat(updated.priceIncreaseStep)
+          : undefined,
+        priceDecreaseStep: updated.priceDecreaseStep
+          ? parseFloat(updated.priceDecreaseStep)
+          : undefined,
+      });
+      setSaveSuccess("Organization updated successfully");
+    } catch (err) {
+      setSaveError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update organization"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -267,7 +328,98 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </div>
+
+        {me.role === "ADMIN" && orgDetails && (
+          <div>
+            <h2 className="text-xl font-semibold text-card-foreground mb-4">
+              Organization Settings
+            </h2>
+            <form onSubmit={handleOrgUpdate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-card-foreground">
+                  Name
+                </label>
+                <Input
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={orgDetails.name}
+                  onChange={(e) =>
+                    setOrgDetails((d) =>
+                      d ? { ...d, name: e.target.value } : d
+                    )
+                  }
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-card-foreground">
+                    Price Increase Step (€)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={orgDetails.priceIncreaseStep ?? ""}
+                    onChange={(e) =>
+                      setOrgDetails((d) =>
+                        d
+                          ? {
+                              ...d,
+                              priceIncreaseStep:
+                                e.target.value === ""
+                                  ? undefined
+                                  : parseFloat(e.target.value),
+                            }
+                          : d
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-card-foreground">
+                    Price Decrease Step (€)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={orgDetails.priceDecreaseStep ?? ""}
+                    onChange={(e) =>
+                      setOrgDetails((d) =>
+                        d
+                          ? {
+                              ...d,
+                              priceDecreaseStep:
+                                e.target.value === ""
+                                  ? undefined
+                                  : parseFloat(e.target.value),
+                            }
+                          : d
+                      )
+                    }
+                  />
+                </div>
+              </div>
+              {saveError && (
+                <p className="text-sm text-destructive">{saveError}</p>
+              )}
+              {saveSuccess && (
+                <p className="text-sm text-green-600">{saveSuccess}</p>
+              )}
+              <button
+                type="submit"
+                className="inline-flex items-center rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
