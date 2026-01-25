@@ -552,7 +552,7 @@ databaseChangeLog:
         - sql:
             sql: >
               INSERT INTO products (organization_id, category_id, name, description, base_price, min_price, max_price)
-              SELECT 2, c.id, 'Screwdriver', 'Kruvikeeraja', 5.00, 4.50, 7.50
+              SELECT 2, c.id, 'Screwdriver', 'Kruvikeeraja', 4.50, 4.00, 7.00
               FROM categories c WHERE c.organization_id = 2 AND c.name = 'Kokteilid';
         - sql:
             sql: >
