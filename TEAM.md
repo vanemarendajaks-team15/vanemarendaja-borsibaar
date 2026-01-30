@@ -19,6 +19,5 @@ Oskar Pihlak
 
 - feature branches
 - pull requests
-- review by two team members
-
-
+- review by one team member
+- Mentor should preview tickets in Jira and approve before developer starts to resolve
