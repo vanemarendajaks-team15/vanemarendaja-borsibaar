@@ -30,5 +30,26 @@ services:
     depends_on:
       - postgres
 
+  frontend:
+    build:
+      context: frontend
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8080
+      dockerfile: Dockerfile
+    container_name: borsibaar-frontend
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - BACKEND_URL=http://backend:8080
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
