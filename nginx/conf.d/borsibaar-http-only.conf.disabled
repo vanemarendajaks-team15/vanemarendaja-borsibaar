@@ -1,11 +1,11 @@
-# Upstream configuration for backend
+# Upstream configuration for backend (single app container)
 upstream backend {
-    server backend:8080;
+    server app:8080;
 }
 
-# Upstream configuration for frontend
+# Upstream configuration for frontend (single app container)
 upstream frontend {
-    server frontend:3000;
+    server app:3000;
 }
 
 # HTTP server

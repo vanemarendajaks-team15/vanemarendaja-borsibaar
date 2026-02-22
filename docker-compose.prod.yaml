@@ -1,4 +1,3 @@
-version: "3.3"
 services:
   postgres:
     image: postgres:17
@@ -7,52 +6,37 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"
+    # Do not expose DB on host in production (container-to-container only)
+    # ports:
+    #   - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - borsibaar-network
 
-  backend:
+  app:
     build:
-      context: backend
+      context: .
       dockerfile: Dockerfile
-    container_name: borsibaar-backend
+      args:
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+    image: erkang12/test1:latest
+    container_name: borsibaar-app
     expose:
       - "8080"
+      - "3000"
     env_file:
       - .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      # Production URLs for CORS and OAuth redirects (now through nginx)
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
       APP_FRONTEND_URL: ${APP_FRONTEND_URL}
+      BACKEND_URL: http://localhost:8080
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
     depends_on:
       - postgres
     restart: unless-stopped
-    networks:
-      - borsibaar-network
-
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-      args:
-        # Build-time variable for client-side OAuth redirects (now through nginx)
-        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
-    container_name: borsibaar-frontend
-    expose:
-      - "3000"
-    environment:
-      # Server-side: Use Docker network for internal communication
-      BACKEND_URL: http://backend:8080
-      # Client-side: Public URL for OAuth redirects (now through nginx)
-      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
-    restart: unless-stopped
-    depends_on:
-      - backend
     networks:
       - borsibaar-network
 
@@ -67,8 +51,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
-      - frontend
-      - backend
+      - app
     restart: unless-stopped
     networks:
       - borsibaar-network
