@@ -20,3 +20,5 @@ Erik - Created ticket in Jira about the Dashboard welcome text.
 Margus - Created Jira environment, created and solved tickets. Remote repository setting rules. Created HANDIN.md file and added content.
 Maidu - Hasn't showed up yet!
 ```
+#### Interfacing Github and Jira
+- Interfaced Github repository vanemarendajaks-team15 to Jira's account
